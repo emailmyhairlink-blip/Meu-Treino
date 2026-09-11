@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Dumbbell, Plane, TrendingUp, Scale, User, Check, ChevronDown,
-  RefreshCw, Plus, Trash2, Flame, Trophy, Calendar, Timer, Youtube, Activity,
+  RefreshCw, Plus, Trash2, Flame, Trophy, Calendar, Timer, Youtube, Activity, Download, Upload,
 } from "lucide-react";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
@@ -587,7 +587,10 @@ export default function App() {
           {aba === "progresso" && <Progresso perfil={perfil} treinos={treinos} salvarTreinos={salvarTreinos} />}
           {aba === "peso" && <Peso perfil={perfil} pesos={pesos} salvarPesos={salvarPesos} salvarPerfil={salvarPerfil} />}
           {aba === "perfil" && (
-            <Perfil perfil={perfil} salvarPerfil={salvarPerfil} salvarTreinos={salvarTreinos} salvarPesos={salvarPesos} salvarCardios={salvarCardios} />
+            <Perfil perfil={perfil} salvarPerfil={salvarPerfil}
+              treinos={treinos} salvarTreinos={salvarTreinos}
+              pesos={pesos} salvarPesos={salvarPesos}
+              cardios={cardios} salvarCardios={salvarCardios} />
           )}
           <nav className="nav">
             {[
@@ -1384,10 +1387,59 @@ function Peso({ perfil, pesos, salvarPesos, salvarPerfil }) {
 /* ---------------------------------------------------------------
    ABA PERFIL
 --------------------------------------------------------------- */
-function Perfil({ perfil, salvarPerfil, salvarTreinos, salvarPesos, salvarCardios }) {
+function Perfil({ perfil, salvarPerfil, treinos, salvarTreinos, pesos, salvarPesos, cardios, salvarCardios }) {
   const [p, setP] = useState(perfil);
   const [confirmar, setConfirmar] = useState(false);
+  const [pendente, setPendente] = useState(null);
+  const [msgBackup, setMsgBackup] = useState(null);
+  const arquivoRef = useRef(null);
   const set = (k, v) => { const n = { ...p, [k]: v }; setP(n); salvarPerfil(n); };
+
+  const exportarBackup = () => {
+    const dados = { versao: 1, exportadoEm: new Date().toISOString(), perfil: p, treinos, pesos, cardios };
+    const blob = new Blob([JSON.stringify(dados, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `meu-treino-backup-${hoje()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    setMsgBackup({ ok: true, texto: "Backup exportado — confira a pasta de downloads do celular." });
+  };
+
+  const selecionarArquivo = (e) => {
+    const arquivo = e.target.files?.[0];
+    e.target.value = "";
+    if (!arquivo) return;
+    const leitor = new FileReader();
+    leitor.onload = () => {
+      try {
+        const dados = JSON.parse(leitor.result);
+        if (!dados || typeof dados !== "object" || !dados.perfil) {
+          setMsgBackup({ ok: false, texto: "Esse arquivo não parece um backup do Meu Treino." });
+          return;
+        }
+        setPendente(dados);
+        setMsgBackup(null);
+      } catch {
+        setMsgBackup({ ok: false, texto: "Não consegui ler esse arquivo." });
+      }
+    };
+    leitor.readAsText(arquivo);
+  };
+
+  const confirmarImportacao = () => {
+    if (!pendente) return;
+    salvarPerfil(pendente.perfil || null);
+    setP(pendente.perfil || p);
+    salvarTreinos(pendente.treinos || []);
+    salvarPesos(pendente.pesos || []);
+    salvarCardios(pendente.cardios || []);
+    setPendente(null);
+    setMsgBackup({ ok: true, texto: "Backup importado com sucesso." });
+  };
 
   const mover = (i, dir) => {
     const o = [...p.ordem];
@@ -1537,6 +1589,45 @@ function Perfil({ perfil, salvarPerfil, salvarTreinos, salvarPesos, salvarCardio
           <RefreshCw size={15} /> Avançar para o próximo ciclo
         </button>
       </div>
+
+      <div className="card" style={{ marginTop: 12, padding: 14 }}>
+        <div style={{ fontSize: 14, fontWeight: 600 }}>Backup</div>
+        <div style={{ fontSize: 13, color: C.mut, marginTop: 5, lineHeight: 1.5 }}>
+          Seus dados ficam só neste celular. Exporte de vez em quando — principalmente antes de trocar de aparelho.
+        </div>
+        <div style={{ display: "flex", gap: 8, marginTop: 11 }}>
+          <button className="btn" style={{ flex: 1 }} onClick={exportarBackup}>
+            <Download size={15} /> Exportar
+          </button>
+          <button className="btn" style={{ flex: 1 }} onClick={() => arquivoRef.current?.click()}>
+            <Upload size={15} /> Importar
+          </button>
+          <input ref={arquivoRef} type="file" accept="application/json" style={{ display: "none" }} onChange={selecionarArquivo} />
+        </div>
+        {msgBackup && (
+          <div style={{ fontSize: 12, color: msgBackup.ok ? C.p10 : C.p25, marginTop: 10, lineHeight: 1.5 }}>
+            {msgBackup.texto}
+          </div>
+        )}
+      </div>
+
+      {pendente && (
+        <div className="card" style={{ marginTop: 12, padding: 14, borderColor: C.p15 }}>
+          <div style={{ fontSize: 14, fontWeight: 600 }}>Confirmar importação</div>
+          <div style={{ fontSize: 13, color: C.mut, marginTop: 5, lineHeight: 1.5 }}>
+            Isso substitui TODOS os dados deste celular pelos do arquivo — {pendente.treinos?.length || 0} treinos,
+            {" "}{pendente.pesos?.length || 0} registros de peso e {pendente.cardios?.length || 0} de cardio.
+            {pendente.exportadoEm && ` Exportado em ${new Date(pendente.exportadoEm).toLocaleDateString("pt-BR")}.`}
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 11 }}>
+            <button className="btn" style={{ flex: 1 }} onClick={() => setPendente(null)}>Cancelar</button>
+            <button className="btn" style={{ flex: 1, background: C.p15, borderColor: C.p15, color: "#1A1400" }}
+              onClick={confirmarImportacao}>
+              Substituir dados
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="card" style={{ marginTop: 12, padding: 14, borderColor: confirmar ? C.p25 : C.line }}>
         <div style={{ fontSize: 14, fontWeight: 600 }}>Apagar todos os dados</div>
