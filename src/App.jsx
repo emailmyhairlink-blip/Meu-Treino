@@ -277,7 +277,7 @@ const OBJETIVOS = {
 };
 const LISTA_OBJETIVOS = Object.entries(OBJETIVOS).map(([id, o]) => [id, o.label]);
 
-function prescricao(tipo, objetivo, idade) {
+function prescricao(tipo, objetivo, idade, ajusteDescanso = 0) {
   const cfg = (OBJETIVOS[objetivo] || OBJETIVOS.hipertrofia)[tipo];
   let { reps, series, desc } = cfg;
   const veterano = idade >= 45;
@@ -285,6 +285,7 @@ function prescricao(tipo, objetivo, idade) {
     desc += 30;
     if (objetivo === "forca" && tipo === "C") reps = "5-8";
   }
+  desc = Math.max(15, desc + ajusteDescanso);
   return { reps, series, desc };
 }
 
@@ -292,8 +293,8 @@ function prescricao(tipo, objetivo, idade) {
 const EXEC_C = 45; // composto: mais setup (barra, ajuste de banco)
 const EXEC_I = 30; // isolado: mais rápido de ajustar
 
-function custoExercicio(tipo, objetivo, idade) {
-  const { series, desc } = prescricao(tipo, objetivo, idade);
+function custoExercicio(tipo, objetivo, idade, ajusteDescanso = 0) {
+  const { series, desc } = prescricao(tipo, objetivo, idade, ajusteDescanso);
   const exec = tipo === "C" ? EXEC_C : EXEC_I;
   return series * exec + series * desc; // execução + descanso de cada série
 }
@@ -303,10 +304,10 @@ function aquecimentoPara(minutos) {
 }
 
 // decide quantos exercícios compostos/isolados cabem no tempo disponível
-function calcQtdExercicios(minutos, objetivo, idade, nivel) {
+function calcQtdExercicios(minutos, objetivo, idade, nivel, ajusteDescanso = 0) {
   const budget = Math.max(300, minutos * 60 - aquecimentoPara(minutos));
-  const cC = custoExercicio("C", objetivo, idade);
-  const cI = custoExercicio("I", objetivo, idade);
+  const cC = custoExercicio("C", objetivo, idade, ajusteDescanso);
+  const cI = custoExercicio("I", objetivo, idade, ajusteDescanso);
   const tetoNivel = nivel === "avancado" ? 7 : nivel === "iniciante" ? 5 : 6;
 
   let nC = 0, nI = 0, usado = 0, total = 0, vezComposto = true;
@@ -333,9 +334,9 @@ function estimarMinutos(exercicios, minutosBase) {
   return Math.round((seg + aquecimentoPara(minutosBase)) / 60);
 }
 
-function montarTreino(grupo, ciclo, nivel, objetivo, idade, minutos = 30, preferMaquina = true, enfasePernas = "padrao") {
+function montarTreino(grupo, ciclo, nivel, objetivo, idade, minutos = 30, preferMaquina = true, enfasePernas = "padrao", ajusteDescanso = 0) {
   const pool = POOL[grupo];
-  const { nC, nI } = calcQtdExercicios(minutos, objetivo, idade, nivel);
+  const { nC, nI } = calcQtdExercicios(minutos, objetivo, idade, nivel, ajusteDescanso);
   const prioridades =
     grupo === "pernas" && enfasePernas !== "padrao" ? [(e) => e.enfase === enfasePernas] : [];
 
@@ -359,10 +360,10 @@ function montarTreino(grupo, ciclo, nivel, objetivo, idade, minutos = 30, prefer
     ];
   }
 
-  return escolhidos.map((e) => ({ nome: e.n, tipo: e.t, eq: e.eq, ...prescricao(e.t, objetivo, idade) }));
+  return escolhidos.map((e) => ({ nome: e.n, tipo: e.t, eq: e.eq, ...prescricao(e.t, objetivo, idade, ajusteDescanso) }));
 }
 
-function montarViagem(equip, minutos, ciclo, objetivo, idade) {
+function montarViagem(equip, minutos, ciclo, objetivo, idade, ajusteDescanso = 0) {
   const pool = VIAGEM[equip];
   const qtd = minutos <= 20 ? 4 : minutos <= 30 ? 6 : 8;
   const sel = girar(pool, ciclo * qtd).slice(0, qtd);
@@ -373,7 +374,7 @@ function montarViagem(equip, minutos, ciclo, objetivo, idade) {
   };
   const reps = equip === "nenhum" ? "15-20" : (repsPorObjetivo[objetivo] || "10-15");
   const curto = objetivo === "emagrecimento" || objetivo === "resistencia";
-  const desc = curto ? 25 : minutos <= 20 ? 30 : idade >= 45 ? 75 : 60;
+  const desc = Math.max(15, (curto ? 25 : minutos <= 20 ? 30 : idade >= 45 ? 75 : 60) + ajusteDescanso);
   return sel.map((e) => ({ nome: e.n, alvo: e.alvo, series, reps, desc }));
 }
 
@@ -437,6 +438,44 @@ function inicioSemana(iso) {
   return d.toISOString().slice(0, 10);
 }
 const nfmt = (n) => n.toLocaleString("pt-BR", { maximumFractionDigits: 0 });
+
+// cria (uma vez) o contexto de áudio — precisa nascer dentro de um gesto
+// do usuário (ex.: o toque que inicia o descanso) pra não ser bloqueado
+// pelas políticas de autoplay do navegador
+function criarAudioContext() {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    return Ctx ? new Ctx() : null;
+  } catch {
+    return null;
+  }
+}
+
+// dois bipes curtos — som de alerta de fim de descanso
+function tocarBipDescanso(ctx) {
+  if (!ctx) return;
+  try {
+    if (ctx.state === "suspended") ctx.resume();
+    const bip = (offset) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "sine";
+      osc.frequency.value = 880;
+      const t0 = ctx.currentTime + offset;
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(0.35, t0 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.25);
+      osc.start(t0);
+      osc.stop(t0 + 0.26);
+    };
+    bip(0);
+    bip(0.3);
+  } catch (e) {
+    console.error("Som indisponível", e);
+  }
+}
 
 // monta um link de busca no YouTube filtrado por vídeos curtos (< 4 min)
 function linkYoutube(nomeExercicio) {
@@ -619,7 +658,7 @@ function Onboarding({ onPronto }) {
   const [f, setF] = useState({
     nome: "", idade: "", peso: "", altura: "",
     nivel: "intermediario", objetivo: "hipertrofia",
-    dias: [1, 2, 3, 4, 5], minutosTreino: 30, prefMaquina: true, enfasePernas: "padrao",
+    dias: [1, 2, 3, 4, 5], minutosTreino: 30, prefMaquina: true, enfasePernas: "padrao", ajusteDescanso: 0,
     ordem: ["peito", "costas", "pernas", "ombros", "bracos"],
   });
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
@@ -742,6 +781,7 @@ function Treino({ perfil, treinos, salvarTreinos, salvarPerfil }) {
   const [aberto, setAberto] = useState(0);
   const [salvo, setSalvo] = useState(false);
   const [descanso, setDescanso] = useState(null);
+  const audioCtxRef = useRef(null);
 
   const ciclo = useMemo(() => {
     const dias = Math.floor((new Date(hoje()) - new Date(perfil.inicio)) / 864e5);
@@ -759,9 +799,9 @@ function Treino({ perfil, treinos, salvarTreinos, salvarPerfil }) {
   const minutosBase = viagem ? minutos : perfil.minutosTreino || 30;
 
   const exercicios = useMemo(() => {
-    if (viagem) return montarViagem(equip, minutos, ciclo, perfil.objetivo, perfil.idade);
+    if (viagem) return montarViagem(equip, minutos, ciclo, perfil.objetivo, perfil.idade, perfil.ajusteDescanso || 0);
     if (!grupo) return [];
-    return montarTreino(grupo, ciclo, perfil.nivel, perfil.objetivo, perfil.idade, perfil.minutosTreino || 30, perfil.prefMaquina !== false, perfil.enfasePernas || "padrao");
+    return montarTreino(grupo, ciclo, perfil.nivel, perfil.objetivo, perfil.idade, perfil.minutosTreino || 30, perfil.prefMaquina !== false, perfil.enfasePernas || "padrao", perfil.ajusteDescanso || 0);
   }, [viagem, equip, minutos, grupo, ciclo, perfil]);
 
   const minutosEstimados = useMemo(
@@ -788,6 +828,7 @@ function Treino({ perfil, treinos, salvarTreinos, salvarPerfil }) {
     if (!descanso) return;
     if (descanso.restante <= 0) {
       try { navigator.vibrate?.([200, 100, 200]); } catch {}
+      tocarBipDescanso(audioCtxRef.current);
       setDescanso(null);
       return;
     }
@@ -797,8 +838,10 @@ function Treino({ perfil, treinos, salvarTreinos, salvarPerfil }) {
     return () => clearTimeout(id);
   }, [descanso]);
 
-  const iniciarDescanso = (segundos, nomeExercicio) =>
+  const iniciarDescanso = (segundos, nomeExercicio) => {
+    if (!audioCtxRef.current) audioCtxRef.current = criarAudioContext();
     setDescanso({ restante: segundos, total: segundos, exercicio: nomeExercicio });
+  };
 
   // pré-preenche kg/reps com a última vez que cada exercício foi feito
   useEffect(() => {
@@ -1552,6 +1595,21 @@ function Perfil({ perfil, salvarPerfil, treinos, salvarTreinos, pesos, salvarPes
             <button key={m} className="chip" style={{ flex: 1 }} data-on={(p.minutosTreino || 30) === m ? 1 : 0}
               onClick={() => set("minutosTreino", m)}>{m} min</button>
           ))}
+        </div>
+      </div>
+
+      <div style={{ marginTop: 16 }}>
+        <div className="eyebrow" style={{ marginBottom: 8 }}>Ajuste no descanso entre séries</div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {[-15, 0, 15, 30, 60].map((v) => (
+            <button key={v} className="chip" data-on={(p.ajusteDescanso || 0) === v ? 1 : 0}
+              onClick={() => set("ajusteDescanso", v)}>
+              {v === 0 ? "Padrão" : v > 0 ? `+${v}s` : `${v}s`}
+            </button>
+          ))}
+        </div>
+        <div style={{ fontSize: 12, color: C.mut, marginTop: 8, lineHeight: 1.5 }}>
+          Soma ou desconta segundos do descanso sugerido em todo exercício, sem mexer no cálculo de reps e séries.
         </div>
       </div>
 
