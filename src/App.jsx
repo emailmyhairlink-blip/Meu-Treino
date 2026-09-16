@@ -741,6 +741,7 @@ function Treino({ perfil, treinos, salvarTreinos, salvarPerfil }) {
   const [log, setLog] = useState({});
   const [aberto, setAberto] = useState(0);
   const [salvo, setSalvo] = useState(false);
+  const [descanso, setDescanso] = useState(null);
 
   const ciclo = useMemo(() => {
     const dias = Math.floor((new Date(hoje()) - new Date(perfil.inicio)) / 864e5);
@@ -780,7 +781,24 @@ function Treino({ perfil, treinos, salvarTreinos, salvarPerfil }) {
     return m;
   }, [treinos]);
 
-  useEffect(() => { setSalvo(false); setAberto(0); }, [diaSel, viagem, equip, minutos]);
+  useEffect(() => { setSalvo(false); setAberto(0); setDescanso(null); }, [diaSel, viagem, equip, minutos]);
+
+  // contagem regressiva do descanso entre séries
+  useEffect(() => {
+    if (!descanso) return;
+    if (descanso.restante <= 0) {
+      try { navigator.vibrate?.([200, 100, 200]); } catch {}
+      setDescanso(null);
+      return;
+    }
+    const id = setTimeout(() => {
+      setDescanso((d) => (d ? { ...d, restante: d.restante - 1 } : null));
+    }, 1000);
+    return () => clearTimeout(id);
+  }, [descanso]);
+
+  const iniciarDescanso = (segundos, nomeExercicio) =>
+    setDescanso({ restante: segundos, total: segundos, exercicio: nomeExercicio });
 
   // pré-preenche kg/reps com a última vez que cada exercício foi feito
   useEffect(() => {
@@ -967,7 +985,11 @@ function Treino({ perfil, treinos, salvarTreinos, salvarPerfil }) {
                               value={v.kg || ""} onChange={(ev) => setSerie(e.nome, s, "kg", ev.target.value.replace(",", "."))} />
                             <input className="f mono" inputMode="numeric" placeholder={e.reps.split("-")[0]}
                               value={v.reps || ""} onChange={(ev) => setSerie(e.nome, s, "reps", ev.target.value.replace(/\D/g, ""))} />
-                            <div className="chk" data-on={v.ok ? 1 : 0} onClick={() => setSerie(e.nome, s, "ok", !v.ok)}>
+                            <div className="chk" data-on={v.ok ? 1 : 0} onClick={() => {
+                              const marcando = !v.ok;
+                              setSerie(e.nome, s, "ok", marcando);
+                              if (marcando) iniciarDescanso(e.desc, e.nome);
+                            }}>
                               <Check size={17} color={v.ok ? "#fff" : C.mut} strokeWidth={3} />
                             </div>
                           </div>
@@ -992,7 +1014,28 @@ function Treino({ perfil, treinos, salvarTreinos, salvarPerfil }) {
                   <div className="stat-l">Séries feitas</div>
                 </div>
               </div>
-              <Timer size={20} color={C.mut} />
+              {descanso ? (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
+                  <button onClick={() => setDescanso(null)} aria-label="Pular descanso"
+                    style={{ background: "none", border: 0, cursor: "pointer", padding: 0 }}>
+                    <div style={{
+                      width: 40, height: 40, borderRadius: "50%",
+                      background: `conic-gradient(${C.p10} ${(1 - descanso.restante / descanso.total) * 360}deg, ${C.line} 0deg)`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <div style={{
+                        width: 32, height: 32, borderRadius: "50%", background: C.card,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        <span className="mono" style={{ fontSize: 11, fontWeight: 700 }}>{descanso.restante}</span>
+                      </div>
+                    </div>
+                  </button>
+                  <span className="stat-l" style={{ fontSize: 9 }}>Descanso</span>
+                </div>
+              ) : (
+                <Timer size={20} color={C.mut} />
+              )}
             </div>
           </div>
 
