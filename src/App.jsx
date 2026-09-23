@@ -146,60 +146,62 @@ const POOL = {
   ],
 };
 
-/* Modo viagem — separado por equipamento disponível */
+/* Modo viagem — separado por equipamento disponível.
+   grupo: peito/costas/pernas/ombros/bracos — usado pra focar um
+   grupo por dia em viagens de 3+ dias; "geral" entra em qualquer foco */
 const VIAGEM = {
   nenhum: [
-    { n: "Flexão de braço", alvo: "Peito" },
-    { n: "Flexão diamante", alvo: "Tríceps" },
-    { n: "Flexão inclinada (pés na cama)", alvo: "Peito alto" },
-    { n: "Pike push-up", alvo: "Ombros" },
-    { n: "Agachamento livre", alvo: "Pernas" },
-    { n: "Agachamento búlgaro", alvo: "Pernas" },
-    { n: "Afundo caminhando", alvo: "Pernas" },
-    { n: "Ponte de glúteo", alvo: "Glúteo" },
-    { n: "Panturrilha em pé (unilateral)", alvo: "Panturrilha" },
-    { n: "Remada invertida na mesa", alvo: "Costas" },
-    { n: "Superman", alvo: "Lombar" },
-    { n: "Mergulho na cadeira", alvo: "Tríceps" },
-    { n: "Prancha", alvo: "Core" },
-    { n: "Mountain climber", alvo: "Core" },
-    { n: "Burpee", alvo: "Corpo todo" },
-    { n: "Abdominal remador", alvo: "Core" },
+    { n: "Flexão de braço", alvo: "Peito", grupo: "peito" },
+    { n: "Flexão diamante", alvo: "Tríceps", grupo: "bracos" },
+    { n: "Flexão inclinada (pés na cama)", alvo: "Peito alto", grupo: "peito" },
+    { n: "Pike push-up", alvo: "Ombros", grupo: "ombros" },
+    { n: "Agachamento livre", alvo: "Pernas", grupo: "pernas" },
+    { n: "Agachamento búlgaro", alvo: "Pernas", grupo: "pernas" },
+    { n: "Afundo caminhando", alvo: "Pernas", grupo: "pernas" },
+    { n: "Ponte de glúteo", alvo: "Glúteo", grupo: "pernas" },
+    { n: "Panturrilha em pé (unilateral)", alvo: "Panturrilha", grupo: "pernas" },
+    { n: "Remada invertida na mesa", alvo: "Costas", grupo: "costas" },
+    { n: "Superman", alvo: "Lombar", grupo: "costas" },
+    { n: "Mergulho na cadeira", alvo: "Tríceps", grupo: "bracos" },
+    { n: "Prancha", alvo: "Core", grupo: "geral" },
+    { n: "Mountain climber", alvo: "Core", grupo: "geral" },
+    { n: "Burpee", alvo: "Corpo todo", grupo: "geral" },
+    { n: "Abdominal remador", alvo: "Core", grupo: "geral" },
   ],
   halteres: [
-    { n: "Supino com halteres no chão", alvo: "Peito" },
-    { n: "Crucifixo com halteres", alvo: "Peito" },
-    { n: "Remada unilateral com halter", alvo: "Costas" },
-    { n: "Remada curvada com halteres", alvo: "Costas" },
-    { n: "Desenvolvimento com halteres", alvo: "Ombros" },
-    { n: "Elevação lateral", alvo: "Ombros" },
-    { n: "Agachamento goblet", alvo: "Pernas" },
-    { n: "Afundo com halteres", alvo: "Pernas" },
-    { n: "Terra romeno com halteres", alvo: "Posterior" },
-    { n: "Rosca alternada", alvo: "Bíceps" },
-    { n: "Rosca martelo", alvo: "Bíceps" },
-    { n: "Tríceps francês", alvo: "Tríceps" },
-    { n: "Tríceps coice", alvo: "Tríceps" },
-    { n: "Encolhimento com halteres", alvo: "Trapézio" },
-    { n: "Flexão de braço", alvo: "Peito" },
-    { n: "Prancha", alvo: "Core" },
+    { n: "Supino com halteres no chão", alvo: "Peito", grupo: "peito" },
+    { n: "Crucifixo com halteres", alvo: "Peito", grupo: "peito" },
+    { n: "Flexão de braço", alvo: "Peito", grupo: "peito" },
+    { n: "Remada unilateral com halter", alvo: "Costas", grupo: "costas" },
+    { n: "Remada curvada com halteres", alvo: "Costas", grupo: "costas" },
+    { n: "Terra romeno com halteres", alvo: "Posterior", grupo: "costas" },
+    { n: "Desenvolvimento com halteres", alvo: "Ombros", grupo: "ombros" },
+    { n: "Elevação lateral", alvo: "Ombros", grupo: "ombros" },
+    { n: "Encolhimento com halteres", alvo: "Trapézio", grupo: "ombros" },
+    { n: "Agachamento goblet", alvo: "Pernas", grupo: "pernas" },
+    { n: "Afundo com halteres", alvo: "Pernas", grupo: "pernas" },
+    { n: "Rosca alternada", alvo: "Bíceps", grupo: "bracos" },
+    { n: "Rosca martelo", alvo: "Bíceps", grupo: "bracos" },
+    { n: "Tríceps francês", alvo: "Tríceps", grupo: "bracos" },
+    { n: "Tríceps coice", alvo: "Tríceps", grupo: "bracos" },
+    { n: "Prancha", alvo: "Core", grupo: "geral" },
   ],
   completa: [
-    { n: "Supino com halteres", alvo: "Peito" },
-    { n: "Puxada frontal na polia", alvo: "Costas" },
-    { n: "Remada baixa", alvo: "Costas" },
-    { n: "Leg press", alvo: "Pernas" },
-    { n: "Agachamento goblet", alvo: "Pernas" },
-    { n: "Desenvolvimento com halteres", alvo: "Ombros" },
-    { n: "Elevação lateral", alvo: "Ombros" },
-    { n: "Crucifixo com halteres", alvo: "Peito" },
-    { n: "Cadeira extensora", alvo: "Quadríceps" },
-    { n: "Mesa flexora", alvo: "Posterior" },
-    { n: "Rosca direta", alvo: "Bíceps" },
-    { n: "Tríceps na polia", alvo: "Tríceps" },
-    { n: "Remada unilateral com halter", alvo: "Costas" },
-    { n: "Panturrilha em pé", alvo: "Panturrilha" },
-    { n: "Prancha", alvo: "Core" },
+    { n: "Supino com halteres", alvo: "Peito", grupo: "peito" },
+    { n: "Crucifixo com halteres", alvo: "Peito", grupo: "peito" },
+    { n: "Puxada frontal na polia", alvo: "Costas", grupo: "costas" },
+    { n: "Remada baixa", alvo: "Costas", grupo: "costas" },
+    { n: "Remada unilateral com halter", alvo: "Costas", grupo: "costas" },
+    { n: "Desenvolvimento com halteres", alvo: "Ombros", grupo: "ombros" },
+    { n: "Elevação lateral", alvo: "Ombros", grupo: "ombros" },
+    { n: "Leg press", alvo: "Pernas", grupo: "pernas" },
+    { n: "Agachamento goblet", alvo: "Pernas", grupo: "pernas" },
+    { n: "Cadeira extensora", alvo: "Quadríceps", grupo: "pernas" },
+    { n: "Mesa flexora", alvo: "Posterior", grupo: "pernas" },
+    { n: "Panturrilha em pé", alvo: "Panturrilha", grupo: "pernas" },
+    { n: "Rosca direta", alvo: "Bíceps", grupo: "bracos" },
+    { n: "Tríceps na polia", alvo: "Tríceps", grupo: "bracos" },
+    { n: "Prancha", alvo: "Core", grupo: "geral" },
   ],
 };
 
@@ -363,10 +365,11 @@ function montarTreino(grupo, ciclo, nivel, objetivo, idade, minutos = 30, prefer
   return escolhidos.map((e) => ({ nome: e.n, tipo: e.t, eq: e.eq, ...prescricao(e.t, objetivo, idade, ajusteDescanso) }));
 }
 
-function montarViagem(equip, minutos, ciclo, objetivo, idade, ajusteDescanso = 0) {
+function montarViagem(equip, minutos, diaViagem, objetivo, idade, ajusteDescanso = 0, foco = null) {
   const pool = VIAGEM[equip];
   const qtd = minutos <= 20 ? 4 : minutos <= 30 ? 6 : 8;
-  const sel = girar(pool, ciclo * qtd).slice(0, qtd);
+  const prioridades = foco ? [(e) => e.grupo === foco] : [];
+  const sel = selecionar(pool, diaViagem, qtd, false, prioridades);
   const series = minutos <= 20 ? 3 : 4;
   const repsPorObjetivo = {
     forca: "8-10", hipertrofia: "10-15", definicao: "12-15",
@@ -456,22 +459,23 @@ function tocarBipDescanso(ctx) {
   if (!ctx) return;
   try {
     if (ctx.state === "suspended") ctx.resume();
-    const bip = (offset) => {
+    // arpejo ascendente de 3 notas em onda quadrada — mais harmônicos que
+    // um seno puro, corta melhor por cima de música/fala no fone
+    const notas = [740, 932, 1174];
+    notas.forEach((freq, i) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
       gain.connect(ctx.destination);
-      osc.type = "sine";
-      osc.frequency.value = 880;
-      const t0 = ctx.currentTime + offset;
+      osc.type = "square";
+      osc.frequency.value = freq;
+      const t0 = ctx.currentTime + i * 0.16;
       gain.gain.setValueAtTime(0.0001, t0);
-      gain.gain.exponentialRampToValueAtTime(0.35, t0 + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.25);
+      gain.gain.exponentialRampToValueAtTime(0.5, t0 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.22);
       osc.start(t0);
-      osc.stop(t0 + 0.26);
-    };
-    bip(0);
-    bip(0.3);
+      osc.stop(t0 + 0.24);
+    });
   } catch (e) {
     console.error("Som indisponível", e);
   }
@@ -658,7 +662,7 @@ function Onboarding({ onPronto }) {
   const [f, setF] = useState({
     nome: "", idade: "", peso: "", altura: "",
     nivel: "intermediario", objetivo: "hipertrofia",
-    dias: [1, 2, 3, 4, 5], minutosTreino: 30, prefMaquina: true, enfasePernas: "padrao", ajusteDescanso: 0,
+    dias: [1, 2, 3, 4, 5], minutosTreino: 30, prefMaquina: true, enfasePernas: "padrao", ajusteDescanso: 0, viagem: null,
     ordem: ["peito", "costas", "pernas", "ombros", "bracos"],
   });
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
@@ -774,7 +778,9 @@ function Campo({ label, children }) {
 function Treino({ perfil, treinos, salvarTreinos, salvarPerfil }) {
   const hj = new Date();
   const [diaSel, setDiaSel] = useState(hj.getDay());
-  const [viagem, setViagem] = useState(false);
+  const [configurandoViagem, setConfigurandoViagem] = useState(false);
+  const [dataInicioForm, setDataInicioForm] = useState(hoje());
+  const [dataFimForm, setDataFimForm] = useState(hoje());
   const [equip, setEquip] = useState("nenhum");
   const [minutos, setMinutos] = useState(30);
   const [log, setLog] = useState({});
@@ -782,6 +788,37 @@ function Treino({ perfil, treinos, salvarTreinos, salvarPerfil }) {
   const [salvo, setSalvo] = useState(false);
   const [descanso, setDescanso] = useState(null);
   const audioCtxRef = useRef(null);
+
+  // a viagem fica ativa sozinha durante o período salvo no perfil —
+  // sobrevive a fechar o app e volta ao normal sozinha ao passar do fim
+  const viagemInfo = useMemo(() => {
+    const v = perfil.viagem;
+    if (!v) return null;
+    if (hoje() < v.inicio || hoje() > v.fim) return null;
+    const diasTotal = Math.round((new Date(v.fim + "T12:00:00") - new Date(v.inicio + "T12:00:00")) / 864e5) + 1;
+    const diaIndex = Math.round((new Date(hoje() + "T12:00:00") - new Date(v.inicio + "T12:00:00")) / 864e5);
+    return { ...v, diasTotal, diaIndex };
+  }, [perfil.viagem]);
+  const viagem = !!viagemInfo;
+
+  // limpa do perfil uma viagem que já passou, pra não ficar lixo salvo
+  useEffect(() => {
+    if (perfil.viagem && hoje() > perfil.viagem.fim) {
+      salvarPerfil({ ...perfil, viagem: null });
+    }
+  }, [perfil]);
+
+  const focoDoDia = useMemo(() => {
+    if (!viagemInfo || viagemInfo.diasTotal < 3) return null;
+    return perfil.ordem[viagemInfo.diaIndex % perfil.ordem.length];
+  }, [viagemInfo, perfil.ordem]);
+
+  const iniciarViagem = () => {
+    if (!dataInicioForm || !dataFimForm || dataFimForm < dataInicioForm) return;
+    salvarPerfil({ ...perfil, viagem: { inicio: dataInicioForm, fim: dataFimForm } });
+    setConfigurandoViagem(false);
+  };
+  const encerrarViagem = () => salvarPerfil({ ...perfil, viagem: null });
 
   const ciclo = useMemo(() => {
     const dias = Math.floor((new Date(hoje()) - new Date(perfil.inicio)) / 864e5);
@@ -799,10 +836,10 @@ function Treino({ perfil, treinos, salvarTreinos, salvarPerfil }) {
   const minutosBase = viagem ? minutos : perfil.minutosTreino || 30;
 
   const exercicios = useMemo(() => {
-    if (viagem) return montarViagem(equip, minutos, ciclo, perfil.objetivo, perfil.idade, perfil.ajusteDescanso || 0);
+    if (viagem) return montarViagem(equip, minutos, viagemInfo.diaIndex, perfil.objetivo, perfil.idade, perfil.ajusteDescanso || 0, focoDoDia);
     if (!grupo) return [];
     return montarTreino(grupo, ciclo, perfil.nivel, perfil.objetivo, perfil.idade, perfil.minutosTreino || 30, perfil.prefMaquina !== false, perfil.enfasePernas || "padrao", perfil.ajusteDescanso || 0);
-  }, [viagem, equip, minutos, grupo, ciclo, perfil]);
+  }, [viagem, viagemInfo, focoDoDia, equip, minutos, grupo, ciclo, perfil]);
 
   const minutosEstimados = useMemo(
     () => (exercicios.length ? estimarMinutos(exercicios, minutosBase) : 0),
@@ -823,24 +860,43 @@ function Treino({ perfil, treinos, salvarTreinos, salvarPerfil }) {
 
   useEffect(() => { setSalvo(false); setAberto(0); setDescanso(null); }, [diaSel, viagem, equip, minutos]);
 
-  // contagem regressiva do descanso entre séries
+  // descanso baseado em horário real (não em contagem por setTimeout) —
+  // assim, mesmo que a tela bloqueada congele o JS por um tempo, ao
+  // reabrir o app o valor se corrige sozinho e o alerta dispara na hora
+  const [tique, setTique] = useState(0);
+  const restanteDescanso = descanso ? Math.max(0, Math.ceil((descanso.fim - Date.now()) / 1000)) : 0;
+
   useEffect(() => {
     if (!descanso) return;
-    if (descanso.restante <= 0) {
+    const id = setInterval(() => setTique((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, [descanso]);
+
+  // recalcula assim que a aba volta a ficar visível/em foco — é o que
+  // corrige o cronômetro depois da tela ter ficado bloqueada
+  useEffect(() => {
+    const aoRetomar = () => { if (document.visibilityState === "visible") setTique((n) => n + 1); };
+    document.addEventListener("visibilitychange", aoRetomar);
+    window.addEventListener("focus", aoRetomar);
+    return () => {
+      document.removeEventListener("visibilitychange", aoRetomar);
+      window.removeEventListener("focus", aoRetomar);
+    };
+  }, []);
+
+  // dispara o alerta quando o tempo realmente zera — inclusive "atrasado",
+  // se a tela tiver ficado bloqueada até passar do horário previsto
+  useEffect(() => {
+    if (descanso && restanteDescanso <= 0) {
       try { navigator.vibrate?.([200, 100, 200]); } catch {}
       tocarBipDescanso(audioCtxRef.current);
       setDescanso(null);
-      return;
     }
-    const id = setTimeout(() => {
-      setDescanso((d) => (d ? { ...d, restante: d.restante - 1 } : null));
-    }, 1000);
-    return () => clearTimeout(id);
-  }, [descanso]);
+  }, [restanteDescanso, descanso]);
 
   const iniciarDescanso = (segundos, nomeExercicio) => {
     if (!audioCtxRef.current) audioCtxRef.current = criarAudioContext();
-    setDescanso({ restante: segundos, total: segundos, exercicio: nomeExercicio });
+    setDescanso({ fim: Date.now() + segundos * 1000, total: segundos, exercicio: nomeExercicio });
   };
 
   // pré-preenche kg/reps com a última vez que cada exercício foi feito
@@ -904,7 +960,7 @@ function Treino({ perfil, treinos, salvarTreinos, salvarPerfil }) {
           return (
             <button key={i} className="plate-col" data-on={g ? 1 : 0} data-hoje={diaSel === i ? 1 : 0}
               style={{ color: info ? info.cor : C.line }}
-              onClick={() => { setDiaSel(i); setViagem(false); }}
+              onClick={() => setDiaSel(i)}
               aria-label={g ? `${d} — ${info.nome}` : `${d} — descanso`}>
               <div className="plate" style={{ height: info ? info.alt : 26, background: info ? info.cor : C.line }}>
                 {info && <span>{info.nome.slice(0, 3)}</span>}
@@ -916,33 +972,65 @@ function Treino({ perfil, treinos, salvarTreinos, salvarPerfil }) {
       </div>
 
       {/* modo viagem */}
-      <button className="banner" onClick={() => setViagem(!viagem)}
-        style={{
-          width: "100%", marginTop: 8, cursor: "pointer", textAlign: "left",
-          background: viagem ? "rgba(199,125,255,.14)" : C.bg2,
-          border: `1px solid ${viagem ? C.travel : C.line}`,
+      {viagem ? (
+        <div className="banner" style={{
+          width: "100%", marginTop: 8, textAlign: "left",
+          background: "rgba(199,125,255,.14)", border: `1px solid ${C.travel}`,
         }}>
-        <Plane size={18} color={viagem ? C.travel : C.mut} />
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: viagem ? C.travel : C.txt }}>
-            {viagem ? "Modo viagem ativo" : "Modo viagem"}
+          <Plane size={18} color={C.travel} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: C.travel }}>
+              Viagem — dia {viagemInfo.diaIndex + 1} de {viagemInfo.diasTotal}
+            </div>
+            <div style={{ fontSize: 12, color: C.mut, marginTop: 2 }}>
+              {fmtData(viagemInfo.inicio)} até {fmtData(viagemInfo.fim)}
+              {focoDoDia ? ` · Foco de hoje: ${GRUPOS[focoDoDia].nome}` : " · Corpo inteiro"}
+            </div>
           </div>
-          <div style={{ fontSize: 12, color: C.mut, marginTop: 2 }}>
-            {viagem ? "Corpo inteiro, com o que tiver no hotel" : "Rotina curta e genérica para hotel"}
+          <button className="btn btn-sm" onClick={encerrarViagem}>Encerrar</button>
+        </div>
+      ) : configurandoViagem ? (
+        <div className="card" style={{ marginTop: 8, padding: 14, borderColor: C.travel }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 11 }}>
+            <Plane size={17} color={C.travel} />
+            <div style={{ fontSize: 14, fontWeight: 600, color: C.travel }}>Configurar viagem</div>
+          </div>
+          <div className="grid2">
+            <Campo label="Início">
+              <input type="date" className="f mono" value={dataInicioForm} min={hoje()}
+                onChange={(e) => {
+                  setDataInicioForm(e.target.value);
+                  if (dataFimForm < e.target.value) setDataFimForm(e.target.value);
+                }} />
+            </Campo>
+            <Campo label="Fim">
+              <input type="date" className="f mono" value={dataFimForm} min={dataInicioForm}
+                onChange={(e) => setDataFimForm(e.target.value)} />
+            </Campo>
+          </div>
+          <div style={{ fontSize: 12, color: C.mut, marginTop: 10, lineHeight: 1.5 }}>
+            Com 3 dias ou mais, cada dia foca um grupo muscular diferente, igual à rotina normal. Menos que isso, treino de corpo inteiro.
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            <button className="btn" style={{ flex: 1 }} onClick={() => setConfigurandoViagem(false)}>Cancelar</button>
+            <button className="btn btn-p" style={{ flex: 1 }} onClick={iniciarViagem}>Iniciar viagem</button>
           </div>
         </div>
-        <div style={{ width: 38, height: 22, borderRadius: 99, background: viagem ? C.travel : C.line, position: "relative" }}>
-          <div style={{
-            position: "absolute", top: 3, left: viagem ? 19 : 3, width: 16, height: 16,
-            borderRadius: 99, background: viagem ? "#1A0B26" : C.mut, transition: ".2s",
-          }} />
-        </div>
-      </button>
+      ) : (
+        <button className="banner" onClick={() => { setConfigurandoViagem(true); setDataInicioForm(hoje()); setDataFimForm(hoje()); }}
+          style={{ width: "100%", marginTop: 8, cursor: "pointer", textAlign: "left", background: C.bg2, border: `1px solid ${C.line}` }}>
+          <Plane size={18} color={C.mut} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 600 }}>Modo viagem</div>
+            <div style={{ fontSize: 12, color: C.mut, marginTop: 2 }}>Defina as datas pra rotinas adaptadas ao hotel</div>
+          </div>
+        </button>
+      )}
 
       {viagem && (
         <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 11 }}>
           <div>
-            <div className="eyebrow" style={{ marginBottom: 7 }}>O que tem disponível</div>
+            <div className="eyebrow" style={{ marginBottom: 7 }}>O que tem disponível hoje</div>
             <div style={{ display: "flex", gap: 7 }}>
               {[["nenhum", "Só o corpo"], ["halteres", "Halteres"], ["completa", "Academia"]].map(([v, l]) => (
                 <button key={v} className="chip" style={{ flex: 1 }} data-on={equip === v ? 1 : 0} onClick={() => setEquip(v)}>{l}</button>
@@ -962,9 +1050,9 @@ function Treino({ perfil, treinos, salvarTreinos, salvarPerfil }) {
 
       {/* título do treino */}
       <div style={{ marginTop: 22, display: "flex", alignItems: "baseline", gap: 10 }}>
-        <div style={{ width: 4, height: 26, borderRadius: 2, background: viagem ? C.travel : grupo ? GRUPOS[grupo].cor : C.line }} />
+        <div style={{ width: 4, height: 26, borderRadius: 2, background: viagem ? (focoDoDia ? GRUPOS[focoDoDia].cor : C.travel) : grupo ? GRUPOS[grupo].cor : C.line }} />
         <h2 className="disp" style={{ fontSize: 25 }}>
-          {viagem ? "Corpo inteiro" : grupo ? GRUPOS[grupo].nome : "Descanso"}
+          {viagem ? (focoDoDia ? GRUPOS[focoDoDia].nome : "Corpo inteiro") : grupo ? GRUPOS[grupo].nome : "Descanso"}
         </h2>
         <span className="mono" style={{ fontSize: 12, color: C.mut }}>
           {exercicios.length ? `${exercicios.length} ex. · ≈${minutosEstimados}min` : ""}
@@ -1063,14 +1151,14 @@ function Treino({ perfil, treinos, salvarTreinos, salvarPerfil }) {
                     style={{ background: "none", border: 0, cursor: "pointer", padding: 0 }}>
                     <div style={{
                       width: 40, height: 40, borderRadius: "50%",
-                      background: `conic-gradient(${C.p10} ${(1 - descanso.restante / descanso.total) * 360}deg, ${C.line} 0deg)`,
+                      background: `conic-gradient(${C.p10} ${(1 - restanteDescanso / descanso.total) * 360}deg, ${C.line} 0deg)`,
                       display: "flex", alignItems: "center", justifyContent: "center",
                     }}>
                       <div style={{
                         width: 32, height: 32, borderRadius: "50%", background: C.card,
                         display: "flex", alignItems: "center", justifyContent: "center",
                       }}>
-                        <span className="mono" style={{ fontSize: 11, fontWeight: 700 }}>{descanso.restante}</span>
+                        <span className="mono" style={{ fontSize: 11, fontWeight: 700 }}>{restanteDescanso}</span>
                       </div>
                     </div>
                   </button>
