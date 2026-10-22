@@ -382,6 +382,106 @@ function montarViagem(equip, minutos, diaViagem, objetivo, idade, ajusteDescanso
 }
 
 /* ---------------------------------------------------------------
+   DIVISÃO DA SEMANA — se adapta à quantidade de dias escolhidos
+   5+ dias: um grupo por dia (na ordem do perfil; 6-7 repetem os primeiros)
+   1-4 dias: junta grupos de forma equilibrada, sem repetir nenhum
+--------------------------------------------------------------- */
+const ORDEM_SEMANA = [1, 2, 3, 4, 5, 6, 0]; // segunda primeiro, domingo por último
+
+const SPLITS_CURTOS = {
+  1: [{ grupos: ["peito", "costas", "pernas", "ombros", "bracos"], nome: "Corpo inteiro", curto: "Tudo" }],
+  2: [
+    { grupos: ["peito", "costas", "ombros", "bracos"], nome: "Superior", curto: "Sup" },
+    { grupos: ["pernas"], nome: "Pernas", curto: "Per" },
+  ],
+  3: [
+    { grupos: ["peito", "ombros"], nome: "Peito + Ombros", curto: "P+O" },
+    { grupos: ["costas", "bracos"], nome: "Costas + Braços", curto: "C+B" },
+    { grupos: ["pernas"], nome: "Pernas", curto: "Per" },
+  ],
+  4: [
+    { grupos: ["peito"], nome: "Peito", curto: "Pei" },
+    { grupos: ["costas"], nome: "Costas", curto: "Cos" },
+    { grupos: ["pernas"], nome: "Pernas", curto: "Per" },
+    { grupos: ["ombros", "bracos"], nome: "Ombros + Braços", curto: "O+B" },
+  ],
+};
+
+// devolve { [diaDaSemana]: { grupos, nome, curto, repeticao } }
+function montarSplit(dias, ordem) {
+  const lista = ORDEM_SEMANA.filter((d) => dias.includes(d));
+  const n = lista.length;
+  const m = {};
+  if (n >= 5) {
+    lista.forEach((d, i) => {
+      const g = ordem[i % ordem.length];
+      m[d] = { grupos: [g], nome: GRUPOS[g].nome, curto: GRUPOS[g].nome.slice(0, 3), repeticao: Math.floor(i / ordem.length) };
+    });
+  } else if (n >= 1) {
+    const split = SPLITS_CURTOS[n];
+    lista.forEach((d, i) => { m[d] = { ...split[i], repeticao: 0 }; });
+  }
+  return m;
+}
+
+// cor da anilha/barrinha: lisa se for 1 grupo, em faixas se forem vários
+function fundoDoPlano(grupos) {
+  const cores = grupos.map((g) => GRUPOS[g].cor);
+  if (cores.length === 1) return cores[0];
+  const n = cores.length;
+  return `linear-gradient(to bottom, ${cores.map((c, k) => `${c} ${(k / n) * 100}% ${((k + 1) / n) * 100}%`).join(", ")})`;
+}
+
+// dia com mais de um grupo: divide o tempo entre eles e evita exercício repetido
+function montarDia(grupos, ciclo, nivel, objetivo, idade, minutos, preferMaquina, enfasePernas, ajusteDescanso) {
+  if (grupos.length === 1) {
+    return montarTreino(grupos[0], ciclo, nivel, objetivo, idade, minutos, preferMaquina, enfasePernas, ajusteDescanso);
+  }
+  const minPorGrupo = minutos / grupos.length;
+  const vistos = new Set();
+  const lista = [];
+  grupos.forEach((g) => {
+    montarTreino(g, ciclo, nivel, objetivo, idade, minPorGrupo, preferMaquina, enfasePernas, ajusteDescanso).forEach((e) => {
+      if (!vistos.has(e.nome)) { vistos.add(e.nome); lista.push(e); }
+    });
+  });
+  return lista;
+}
+
+/* ---------------------------------------------------------------
+   ABDOMINAIS — mini rotina opcional no fim do treino
+   eq: corpo | halteres | maquina | iso = isométrico (reps = segundos)
+--------------------------------------------------------------- */
+const POOL_ABS = [
+  { n: "Abdominal crunch no solo", eq: "corpo" },
+  { n: "Elevação de pernas deitado", eq: "corpo" },
+  { n: "Abdominal bicicleta", eq: "corpo" },
+  { n: "Dead bug", eq: "corpo" },
+  { n: "Mountain climber", eq: "corpo" },
+  { n: "Abdominal remador", eq: "corpo" },
+  { n: "Prancha", eq: "corpo", iso: true },
+  { n: "Prancha lateral (cada lado)", eq: "corpo", iso: true },
+  { n: "Russian twist com anilha ou halter", eq: "halteres" },
+  { n: "Abdominal na polia alta (corda)", eq: "maquina" },
+  { n: "Abdominal na máquina", eq: "maquina" },
+];
+
+// equip: "academia" (tudo) | "nenhum" | "halteres" | "completa" (modo viagem)
+function montarAbdominais(semente, equip, ajusteDescanso = 0, excluir = []) {
+  const liberado = (e) =>
+    equip === "nenhum" ? e.eq === "corpo"
+    : equip === "halteres" ? e.eq === "corpo" || e.eq === "halteres"
+    : true;
+  const pool = POOL_ABS.filter((e) => liberado(e) && !excluir.includes(e.n));
+  const sel = girar(pool, semente * 3).slice(0, 3);
+  const desc = Math.max(15, 20 + ajusteDescanso);
+  return sel.map((e) => ({
+    nome: e.n, tipo: "I", eq: e.eq, series: 3, desc,
+    reps: e.iso ? "30-45" : "15-20", unid: e.iso ? "s" : "r",
+  }));
+}
+
+/* ---------------------------------------------------------------
    ARMAZENAMENTO
    Usa window.storage dentro do preview do Claude; fora daqui
    (app publicado, ex. Vercel) cai automaticamente pro localStorage
@@ -662,7 +762,7 @@ function Onboarding({ onPronto }) {
   const [f, setF] = useState({
     nome: "", idade: "", peso: "", altura: "",
     nivel: "intermediario", objetivo: "hipertrofia",
-    dias: [1, 2, 3, 4, 5], minutosTreino: 30, prefMaquina: true, enfasePernas: "padrao", ajusteDescanso: 0, viagem: null,
+    dias: [1, 2, 3, 4, 5], minutosTreino: 30, prefMaquina: true, enfasePernas: "padrao", ajusteDescanso: 0, viagem: null, abdominais: true,
     ordem: ["peito", "costas", "pernas", "ombros", "bracos"],
   });
   const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
@@ -670,16 +770,16 @@ function Onboarding({ onPronto }) {
   const toggleDia = (d) => {
     const tem = f.dias.includes(d);
     if (tem) set("dias", f.dias.filter((x) => x !== d));
-    else if (f.dias.length < 5) set("dias", [...f.dias, d].sort((a, b) => a - b));
+    else set("dias", [...f.dias, d].sort((a, b) => a - b));
   };
 
-  const valido = f.nome.trim().length > 0 && f.idade > 12 && f.peso > 25 && f.altura > 100 && f.dias.length === 5;
+  const valido = f.nome.trim().length > 0 && f.idade > 12 && f.peso > 25 && f.altura > 100 && f.dias.length >= 1;
 
   return (
     <div className="wrap" style={{ paddingTop: 44, paddingBottom: 40 }}>
       <div className="eyebrow">Vamos montar sua ficha</div>
       <h1 className="disp" style={{ fontSize: 40, lineHeight: 0.95, marginTop: 10 }}>
-        Cinco dias.<br />Um músculo<br />por vez.
+        Seus dias.<br />Seu treino.<br />Sem repetir.
       </h1>
       <p style={{ color: C.mut, fontSize: 14, lineHeight: 1.6, marginTop: 14 }}>
         Preciso de alguns dados para calcular séries, repetições e descanso. Dá para mudar tudo depois.
@@ -737,7 +837,7 @@ function Onboarding({ onPronto }) {
           </div>
         </Campo>
 
-        <Campo label={`Dias de treino — escolha 5 (${f.dias.length}/5)`}>
+        <Campo label={`Dias de treino — escolha de 1 a 7 (${f.dias.length})`}>
           <div style={{ display: "flex", gap: 6 }}>
             {DIAS.map((d, i) => (
               <button key={i} className="chip" style={{ flex: 1, padding: "9px 0" }}
@@ -787,6 +887,7 @@ function Treino({ perfil, treinos, salvarTreinos, salvarPerfil }) {
   const [aberto, setAberto] = useState(0);
   const [salvo, setSalvo] = useState(false);
   const [descanso, setDescanso] = useState(null);
+  const [absAberto, setAbsAberto] = useState(false);
   const audioCtxRef = useRef(null);
 
   // a viagem fica ativa sozinha durante o período salvo no perfil —
@@ -825,21 +926,26 @@ function Treino({ perfil, treinos, salvarTreinos, salvarPerfil }) {
     return Math.max(0, Math.floor(dias / 28)) + (perfil.ciclosExtras || 0);
   }, [perfil]);
 
-  const mapaDias = useMemo(() => {
-    const m = {};
-    perfil.dias.forEach((d, i) => { m[d] = perfil.ordem[i % perfil.ordem.length]; });
-    return m;
-  }, [perfil]);
+  const mapaDias = useMemo(() => montarSplit(perfil.dias, perfil.ordem), [perfil.dias, perfil.ordem]);
 
-  const grupo = mapaDias[diaSel];
+  const plano = mapaDias[diaSel];
+  const grupo = plano?.grupos?.[0];
 
   const minutosBase = viagem ? minutos : perfil.minutosTreino || 30;
 
   const exercicios = useMemo(() => {
     if (viagem) return montarViagem(equip, minutos, viagemInfo.diaIndex, perfil.objetivo, perfil.idade, perfil.ajusteDescanso || 0, focoDoDia);
-    if (!grupo) return [];
-    return montarTreino(grupo, ciclo, perfil.nivel, perfil.objetivo, perfil.idade, perfil.minutosTreino || 30, perfil.prefMaquina !== false, perfil.enfasePernas || "padrao", perfil.ajusteDescanso || 0);
-  }, [viagem, viagemInfo, focoDoDia, equip, minutos, grupo, ciclo, perfil]);
+    if (!plano) return [];
+    return montarDia(plano.grupos, ciclo + plano.repeticao, perfil.nivel, perfil.objetivo, perfil.idade, perfil.minutosTreino || 30, perfil.prefMaquina !== false, perfil.enfasePernas || "padrao", perfil.ajusteDescanso || 0);
+  }, [viagem, viagemInfo, focoDoDia, equip, minutos, plano, ciclo, perfil]);
+
+  // mini rotina opcional de abdominais no fim do treino (não entra no tempo de musculação)
+  const abdominais = useMemo(() => {
+    if (perfil.abdominais === false || !exercicios.length) return [];
+    const semente = viagemInfo ? viagemInfo.diaIndex + 1 : ciclo * 7 + diaSel + 1;
+    return montarAbdominais(semente, viagem ? equip : "academia", perfil.ajusteDescanso || 0, exercicios.map((e) => e.nome));
+  }, [perfil.abdominais, perfil.ajusteDescanso, exercicios, viagem, viagemInfo, equip, ciclo, diaSel]);
+  const minutosAbs = Math.round(abdominais.reduce((a, e) => a + e.series * (EXEC_I + e.desc), 0) / 60);
 
   const minutosEstimados = useMemo(
     () => (exercicios.length ? estimarMinutos(exercicios, minutosBase) : 0),
@@ -858,7 +964,7 @@ function Treino({ perfil, treinos, salvarTreinos, salvarPerfil }) {
     return m;
   }, [treinos]);
 
-  useEffect(() => { setSalvo(false); setAberto(0); setDescanso(null); }, [diaSel, viagem, equip, minutos]);
+  useEffect(() => { setSalvo(false); setAberto(0); setDescanso(null); setAbsAberto(false); }, [diaSel, viagem, equip, minutos]);
 
   // descanso baseado em horário real (não em contagem por setTimeout) —
   // assim, mesmo que a tela bloqueada congele o JS por um tempo, ao
@@ -902,7 +1008,7 @@ function Treino({ perfil, treinos, salvarTreinos, salvarPerfil }) {
   // pré-preenche kg/reps com a última vez que cada exercício foi feito
   useEffect(() => {
     const inicial = {};
-    exercicios.forEach((e) => {
+    [...exercicios, ...abdominais].forEach((e) => {
       const ult = ultimos[e.nome];
       if (!ult) return;
       inicial[e.nome] = Array.from({ length: e.series }).map((_, i) => {
@@ -911,7 +1017,7 @@ function Treino({ perfil, treinos, salvarTreinos, salvarPerfil }) {
       });
     });
     setLog(inicial);
-  }, [exercicios, ultimos]);
+  }, [exercicios, abdominais, ultimos]);
 
   const setSerie = (ex, i, campo, v) =>
     setLog((s) => {
@@ -924,7 +1030,7 @@ function Treino({ perfil, treinos, salvarTreinos, salvarPerfil }) {
   const seriesFeitas = Object.values(log).flat().filter((s) => s?.ok).length;
 
   const concluir = () => {
-    const exs = exercicios
+    const exs = [...exercicios, ...abdominais]
       .map((e) => ({
         nome: e.nome,
         series: (log[e.nome] || []).filter((s) => s && s.ok).map((s) => ({ kg: +s.kg || 0, reps: +s.reps || 0 })),
@@ -933,9 +1039,72 @@ function Treino({ perfil, treinos, salvarTreinos, salvarPerfil }) {
     if (!exs.length) return;
     salvarTreinos([
       ...treinos,
-      { id: Date.now(), data: hoje(), grupo: viagem ? "viagem" : grupo, ciclo, viagem, exercicios: exs, volume },
+      { id: Date.now(), data: hoje(), grupo: viagem ? "viagem" : grupo, rotulo: viagem ? null : plano?.nome, ciclo, viagem, exercicios: exs, volume },
     ]);
     setSalvo(true);
+  };
+
+  const linhaExercicio = (e, i) => {
+              const ult = ultimos[e.nome];
+              const abertoAqui = aberto === i;
+              return (
+                <div className="ex" key={e.nome + i}>
+                  <div className="ex-top" onClick={() => setAberto(abertoAqui ? -1 : i)}>
+                    <div className="ex-num mono">{String(i + 1).padStart(2, "0")}</div>
+                    <div style={{ flex: 1 }}>
+                      <div className="ex-nome">{e.nome}</div>
+                      <div className="ex-meta">
+                        {e.series} × {e.reps}{e.unid === "s" ? "s" : ""} · {e.desc}s descanso{e.alvo ? ` · ${e.alvo}` : ""}
+                        {e.eq && e.eq !== "maquina" && (
+                          <span style={{ color: C.p15 }}> · {e.eq === "halteres" ? "halteres" : e.eq === "livre" ? "barra livre" : "peso do corpo"}</span>
+                        )}
+                      </div>
+                    </div>
+                    <a className="vid-btn" aria-label={`Ver vídeo de ${e.nome} no YouTube`}
+                      href={linkYoutube(e.nome)} target="_blank" rel="noopener noreferrer"
+                      onClick={(ev) => ev.stopPropagation()}>
+                      <Youtube size={17} />
+                    </a>
+                    <ChevronDown size={17} color={C.mut}
+                      style={{ transform: abertoAqui ? "rotate(180deg)" : "none", transition: ".2s", flexShrink: 0 }} />
+                  </div>
+
+                  {abertoAqui && (
+                    <div className="ex-body">
+                      {ult && (
+                        <div className="mono" style={{ fontSize: 11.5, color: C.mut, marginBottom: 11 }}>
+                          Último ({fmtData(ult.data)}): {ult.melhor.kg}kg × {ult.melhor.reps}
+                        </div>
+                      )}
+                      <div className="serie-row" style={{ marginBottom: 6 }}>
+                        <div />
+                        <div className="eyebrow" style={{ fontSize: 10 }}>Carga kg</div>
+                        <div className="eyebrow" style={{ fontSize: 10 }}>{e.unid === "s" ? "Seg" : "Reps"}</div>
+                        <div />
+                      </div>
+                      {Array.from({ length: e.series }).map((_, s) => {
+                        const v = (log[e.nome] || [])[s] || {};
+                        return (
+                          <div className="serie-row" key={s}>
+                            <div className="serie-n">{s + 1}</div>
+                            <input className="f mono" inputMode="decimal" placeholder={ult ? String(ult.melhor.kg) : "—"}
+                              value={v.kg || ""} onChange={(ev) => setSerie(e.nome, s, "kg", ev.target.value.replace(",", "."))} />
+                            <input className="f mono" inputMode="numeric" placeholder={e.reps.split("-")[0]}
+                              value={v.reps || ""} onChange={(ev) => setSerie(e.nome, s, "reps", ev.target.value.replace(/\D/g, ""))} />
+                            <div className="chk" data-on={v.ok ? 1 : 0} onClick={() => {
+                              const marcando = !v.ok;
+                              setSerie(e.nome, s, "ok", marcando);
+                              if (marcando) iniciarDescanso(e.desc, e.nome);
+                            }}>
+                              <Check size={17} color={v.ok ? "#fff" : C.mut} strokeWidth={3} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
   };
 
   return (
@@ -955,15 +1124,17 @@ function Treino({ perfil, treinos, salvarTreinos, salvarPerfil }) {
       <div className="rack" style={{ marginTop: 14 }}>
         <div className="rack-bar" />
         {DIAS.map((d, i) => {
-          const g = mapaDias[i];
-          const info = g ? GRUPOS[g] : null;
+          const pl = mapaDias[i];
           return (
-            <button key={i} className="plate-col" data-on={g ? 1 : 0} data-hoje={diaSel === i ? 1 : 0}
-              style={{ color: info ? info.cor : C.line }}
+            <button key={i} className="plate-col" data-on={pl ? 1 : 0} data-hoje={diaSel === i ? 1 : 0}
+              style={{ color: pl ? GRUPOS[pl.grupos[0]].cor : C.line }}
               onClick={() => setDiaSel(i)}
-              aria-label={g ? `${d} — ${info.nome}` : `${d} — descanso`}>
-              <div className="plate" style={{ height: info ? info.alt : 26, background: info ? info.cor : C.line }}>
-                {info && <span>{info.nome.slice(0, 3)}</span>}
+              aria-label={pl ? `${d} — ${pl.nome}` : `${d} — descanso`}>
+              <div className="plate" style={{
+                height: pl ? Math.max(...pl.grupos.map((g) => GRUPOS[g].alt)) : 26,
+                background: pl ? fundoDoPlano(pl.grupos) : C.line,
+              }}>
+                {pl && <span>{pl.curto}</span>}
               </div>
               <div className="plate-lbl">{d}</div>
             </button>
@@ -1050,9 +1221,9 @@ function Treino({ perfil, treinos, salvarTreinos, salvarPerfil }) {
 
       {/* título do treino */}
       <div style={{ marginTop: 22, display: "flex", alignItems: "baseline", gap: 10 }}>
-        <div style={{ width: 4, height: 26, borderRadius: 2, background: viagem ? (focoDoDia ? GRUPOS[focoDoDia].cor : C.travel) : grupo ? GRUPOS[grupo].cor : C.line }} />
+        <div style={{ width: 4, height: 26, borderRadius: 2, background: viagem ? (focoDoDia ? GRUPOS[focoDoDia].cor : C.travel) : plano ? fundoDoPlano(plano.grupos) : C.line }} />
         <h2 className="disp" style={{ fontSize: 25 }}>
-          {viagem ? (focoDoDia ? GRUPOS[focoDoDia].nome : "Corpo inteiro") : grupo ? GRUPOS[grupo].nome : "Descanso"}
+          {viagem ? (focoDoDia ? GRUPOS[focoDoDia].nome : "Corpo inteiro") : plano ? plano.nome : "Descanso"}
         </h2>
         <span className="mono" style={{ fontSize: 12, color: C.mut }}>
           {exercicios.length ? `${exercicios.length} ex. · ≈${minutosEstimados}min` : ""}
@@ -1069,69 +1240,33 @@ function Treino({ perfil, treinos, salvarTreinos, salvarPerfil }) {
       ) : (
         <>
           <div className="card" style={{ marginTop: 12 }}>
-            {exercicios.map((e, i) => {
-              const ult = ultimos[e.nome];
-              const abertoAqui = aberto === i;
-              return (
-                <div className="ex" key={e.nome + i}>
-                  <div className="ex-top" onClick={() => setAberto(abertoAqui ? -1 : i)}>
-                    <div className="ex-num mono">{String(i + 1).padStart(2, "0")}</div>
-                    <div style={{ flex: 1 }}>
-                      <div className="ex-nome">{e.nome}</div>
-                      <div className="ex-meta">
-                        {e.series} × {e.reps} · {e.desc}s descanso{e.alvo ? ` · ${e.alvo}` : ""}
-                        {e.eq && e.eq !== "maquina" && (
-                          <span style={{ color: C.p15 }}> · {e.eq === "halteres" ? "halteres" : e.eq === "livre" ? "barra livre" : "peso do corpo"}</span>
-                        )}
-                      </div>
-                    </div>
-                    <a className="vid-btn" aria-label={`Ver vídeo de ${e.nome} no YouTube`}
-                      href={linkYoutube(e.nome)} target="_blank" rel="noopener noreferrer"
-                      onClick={(ev) => ev.stopPropagation()}>
-                      <Youtube size={17} />
-                    </a>
-                    <ChevronDown size={17} color={C.mut}
-                      style={{ transform: abertoAqui ? "rotate(180deg)" : "none", transition: ".2s", flexShrink: 0 }} />
-                  </div>
-
-                  {abertoAqui && (
-                    <div className="ex-body">
-                      {ult && (
-                        <div className="mono" style={{ fontSize: 11.5, color: C.mut, marginBottom: 11 }}>
-                          Último ({fmtData(ult.data)}): {ult.melhor.kg}kg × {ult.melhor.reps}
-                        </div>
-                      )}
-                      <div className="serie-row" style={{ marginBottom: 6 }}>
-                        <div />
-                        <div className="eyebrow" style={{ fontSize: 10 }}>Carga kg</div>
-                        <div className="eyebrow" style={{ fontSize: 10 }}>Reps</div>
-                        <div />
-                      </div>
-                      {Array.from({ length: e.series }).map((_, s) => {
-                        const v = (log[e.nome] || [])[s] || {};
-                        return (
-                          <div className="serie-row" key={s}>
-                            <div className="serie-n">{s + 1}</div>
-                            <input className="f mono" inputMode="decimal" placeholder={ult ? String(ult.melhor.kg) : "—"}
-                              value={v.kg || ""} onChange={(ev) => setSerie(e.nome, s, "kg", ev.target.value.replace(",", "."))} />
-                            <input className="f mono" inputMode="numeric" placeholder={e.reps.split("-")[0]}
-                              value={v.reps || ""} onChange={(ev) => setSerie(e.nome, s, "reps", ev.target.value.replace(/\D/g, ""))} />
-                            <div className="chk" data-on={v.ok ? 1 : 0} onClick={() => {
-                              const marcando = !v.ok;
-                              setSerie(e.nome, s, "ok", marcando);
-                              if (marcando) iniciarDescanso(e.desc, e.nome);
-                            }}>
-                              <Check size={17} color={v.ok ? "#fff" : C.mut} strokeWidth={3} />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            {exercicios.map((e, i) => linhaExercicio(e, i))}
           </div>
+
+          {abdominais.length > 0 && (
+            <div className="card" style={{ marginTop: 12 }}>
+              <button onClick={() => setAbsAberto(!absAberto)}
+                style={{
+                  width: "100%", background: "none", border: 0, color: "inherit", cursor: "pointer",
+                  textAlign: "left", fontFamily: "inherit", padding: "14px 15px",
+                  display: "flex", alignItems: "center", gap: 12,
+                }}>
+                <div style={{ flex: 1 }}>
+                  <div className="ex-nome">
+                    Abdominais <span style={{ color: C.mut, fontWeight: 500 }}>· opcional</span>
+                  </div>
+                  <div className="ex-meta">{abdominais.length} exercícios · ≈{minutosAbs} min</div>
+                </div>
+                <ChevronDown size={17} color={C.mut}
+                  style={{ transform: absAberto ? "rotate(180deg)" : "none", transition: ".2s", flexShrink: 0 }} />
+              </button>
+              {absAberto && (
+                <div style={{ borderTop: `1px solid ${C.line}` }}>
+                  {abdominais.map((e, k) => linhaExercicio(e, exercicios.length + k))}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="card" style={{ marginTop: 12, padding: 13 }}>
             <div className="row">
@@ -1236,7 +1371,7 @@ function Progresso({ perfil, treinos, salvarTreinos }) {
 
       <div className="grid3" style={{ marginTop: 16 }}>
         <div className="card stat">
-          <div className="stat-v">{semanaAtual.length}<span style={{ fontSize: 14, color: C.mut }}>/5</span></div>
+          <div className="stat-v">{semanaAtual.length}<span style={{ fontSize: 14, color: C.mut }}>/{perfil.dias.length}</span></div>
           <div className="stat-l">Esta semana</div>
         </div>
         <div className="card stat">
@@ -1281,7 +1416,7 @@ function Progresso({ perfil, treinos, salvarTreinos }) {
             <div style={{ width: 6, height: 26, borderRadius: 3, background: t.viagem ? C.travel : GRUPOS[t.grupo]?.cor || C.mut }} />
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 600 }}>
-                {t.viagem ? "Viagem — corpo inteiro" : GRUPOS[t.grupo]?.nome || t.grupo}
+                {t.viagem ? "Viagem — corpo inteiro" : t.rotulo || GRUPOS[t.grupo]?.nome || t.grupo}
               </div>
               <div className="mono" style={{ fontSize: 11.5, color: C.mut, marginTop: 2 }}>
                 {fmtData(t.data)} · {t.exercicios.length} exercícios · {nfmt(t.volume)} kg
@@ -1626,7 +1761,7 @@ function Perfil({ perfil, salvarPerfil, treinos, salvarTreinos, pesos, salvarPes
   const toggleDia = (d) => {
     const tem = p.dias.includes(d);
     if (tem && p.dias.length > 1) set("dias", p.dias.filter((x) => x !== d));
-    else if (!tem && p.dias.length < 5) set("dias", [...p.dias, d].sort((a, b) => a - b));
+    else if (!tem) set("dias", [...p.dias, d].sort((a, b) => a - b));
   };
 
   return (
@@ -1744,22 +1879,60 @@ function Perfil({ perfil, salvarPerfil, treinos, salvarTreinos, pesos, salvarPes
       </div>
 
       <div style={{ marginTop: 16 }}>
-        <div className="eyebrow" style={{ marginBottom: 8 }}>Dias de treino</div>
+        <div className="eyebrow" style={{ marginBottom: 8 }}>Dias de treino ({p.dias.length} por semana)</div>
         <div style={{ display: "flex", gap: 6 }}>
           {DIAS.map((d, i) => (
             <button key={i} className="chip" style={{ flex: 1, padding: "9px 0" }}
               data-on={p.dias.includes(i) ? 1 : 0} onClick={() => toggleDia(i)}>{d}</button>
           ))}
         </div>
+        <div style={{ fontSize: 12, color: C.mut, marginTop: 8, lineHeight: 1.6 }}>
+          {p.dias.length >= 5
+            ? "Um grupo muscular por dia, na ordem abaixo."
+            : `Divisão automática: ${SPLITS_CURTOS[p.dias.length].map((x) => x.nome).join(" · ")}.`}
+          {p.dias.length >= 6 && " Os primeiros grupos se repetem na semana — mantenha ao menos 1 dia de descanso."}
+          {p.dias.length <= 2 && " Com poucos dias cada treino cobre mais músculos; considere aumentar o tempo disponível."}
+        </div>
       </div>
+
+      <button className="banner" onClick={() => set("abdominais", p.abdominais === false)}
+        style={{
+          width: "100%", marginTop: 16, cursor: "pointer", textAlign: "left",
+          background: p.abdominais !== false ? "rgba(23,146,91,.12)" : C.bg2,
+          border: `1px solid ${p.abdominais !== false ? C.p10 : C.line}`,
+        }}>
+        <Activity size={18} color={p.abdominais !== false ? C.p10 : C.mut} />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 600 }}>Abdominais no fim do treino</div>
+          <div style={{ fontSize: 12, color: C.mut, marginTop: 2 }}>
+            Mini rotina opcional de 3 exercícios, que você abre só se quiser
+          </div>
+        </div>
+        <div style={{ width: 38, height: 22, borderRadius: 99, background: p.abdominais !== false ? C.p10 : C.line, position: "relative", flexShrink: 0 }}>
+          <div style={{
+            position: "absolute", top: 3, left: p.abdominais !== false ? 19 : 3, width: 16, height: 16,
+            borderRadius: 99, background: p.abdominais !== false ? "#0B3D26" : C.mut, transition: ".2s",
+          }} />
+        </div>
+      </button>
 
       <div style={{ marginTop: 16 }}>
         <div className="eyebrow" style={{ marginBottom: 8 }}>Ordem dos grupos musculares</div>
+        {p.dias.length < 5 && (
+          <div style={{ fontSize: 12, color: C.mut, marginBottom: 8, lineHeight: 1.5 }}>
+            Com menos de 5 dias a divisão é automática; esta ordem vale para o modo viagem.
+          </div>
+        )}
         <div className="card">
           {p.ordem.map((g, i) => (
             <div key={g} className="ex" style={{ padding: "11px 13px", display: "flex", alignItems: "center", gap: 11 }}>
               <div style={{ width: 6, height: 24, borderRadius: 3, background: GRUPOS[g].cor }} />
-              <div className="mono" style={{ fontSize: 11, color: C.mut, width: 30 }}>{DIAS[p.dias[i]] || "—"}</div>
+              <div className="mono" style={{ fontSize: 11, color: C.mut, width: 30 }}>
+                {(() => {
+                  const dia = Object.entries(montarSplit(p.dias, p.ordem)).find(([, pl]) => pl.grupos.length === 1 && pl.grupos[0] === g && pl.repeticao === 0)?.[0];
+                  return dia !== undefined ? DIAS[dia] : "—";
+                })()}
+              </div>
               <div style={{ flex: 1, fontSize: 14, fontWeight: 600 }}>{GRUPOS[g].nome}</div>
               <button className="btn btn-sm" style={{ padding: "5px 9px" }} onClick={() => mover(i, -1)} aria-label="Subir">↑</button>
               <button className="btn btn-sm" style={{ padding: "5px 9px" }} onClick={() => mover(i, 1)} aria-label="Descer">↓</button>
